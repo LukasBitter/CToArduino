@@ -40,7 +40,7 @@
 	{
 		//int fd; /* File descriptor for the port */
 
-		int fd = open("/dev/ttyACM1", O_RDWR | O_NOCTTY | O_NDELAY);
+		int fd = open(serialport, O_RDWR | O_NOCTTY | O_NDELAY);
 		if (fd == -1)
 		{
 			/*
@@ -90,9 +90,9 @@
 		return fd;
 	}
 	
-	int serialport_writebyte( int fd, unsigned char b)
+	int serialport_writebyte( int fd, unsigned char* b)
 	{
-		int n = write(fd,&b,1);
+		int n = write(fd,&b,8);
 		if( n!=1)
 		return -1;
 		return 0;
