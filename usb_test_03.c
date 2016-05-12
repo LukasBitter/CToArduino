@@ -6,19 +6,20 @@
 	#include <termios.h> /* POSIX terminal control definitions */
 
 
+	static int baudrate = 9600;
+	static char *serialPort = "/dev/ttyACM1";
+	static int fd; /* File descriptor for the port */
+
 	void main()
 	{
-		static int fd;
-		int baudrate = 9600; 
-		
-		fd = serialport_init("/dev/ttyACM1", baudrate);
+		serialport_init(serialPort, baudrate);
 		if( fd==-1 ) error("couldn't open port");
-		
+
 		serialport_flush(fd);
-		
+
 		unsigned char data;
 		int more = 1;
-		
+
 		while(more == 1){
 			printf( "Enter a value : ");
 			data = getchar();
@@ -35,12 +36,10 @@
 		close(fd);
 
 	}
-	
+
 	int serialport_init(const char* serialport, int baud)
 	{
-		//int fd; /* File descriptor for the port */
-
-		int fd = open(serialport, O_RDWR | O_NOCTTY | O_NDELAY);
+		fd = open(serialport, O_RDWR | O_NOCTTY | O_NDELAY);
 		if (fd == -1)
 		{
 			/*
@@ -86,10 +85,10 @@
 		if(tcsetattr(fd, TCSAFLUSH, &options) < 0){
 			perror("init_serialport: Couldn't set term attributes");
 		}
-		
+
 		return fd;
 	}
-	
+
 	int serialport_writebyte( int fd, unsigned char* b)
 	{
 		int n = write(fd,&b,8);
@@ -97,7 +96,7 @@
 		return -1;
 		return 0;
 	}
-	
+
 	int serialport_flush(int fd)
 	{
 		sleep(2); //required to make flush work, for some reason
