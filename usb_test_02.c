@@ -64,7 +64,7 @@ void main()
     while(more == 1){
 	printf( "Enter a value : ");
 	data = getchar();
-	if (data == 9){
+	if (data == 57){
 		more = 0;
 	}
 	else{
