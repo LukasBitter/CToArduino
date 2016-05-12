@@ -57,21 +57,24 @@ void main()
 
     tcsetattr(fd, TCSANOW, &options);
     if(tcsetattr(fd, TCSAFLUSH, &options) < 0){
-	perror("init_serialport: Couldn't set term attributes");
+    perror("init_serialport: Couldn't set term attributes");
     }
     unsigned char data;
     int more = 1;
-    while(more == 1){
-	printf( "Enter a value : ");
-	data = getchar();
-	if (data == 57){
-		more = 0;
-	}
-	else{
-		int n = write(fd, &data, 8);
-		if(n < 0)
-			fputs("write() of 8 bytes failed!\n", stderr);
-	}
+    while(more == 1)
+    {
+      printf( "Enter a value : ");
+      data = getchar();
+      
+      if (data == 57){
+        more = 0;
+      }
+      else
+      {
+        int n = write(fd, &data, 8);
+        if(n < 0)
+        fputs("write() of 8 bytes failed!\n", stderr);
+      }
     }
 
     close(fd);
