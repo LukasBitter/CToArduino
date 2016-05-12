@@ -32,7 +32,7 @@
 	#include <linux/fs.h>     /* Needed for read write to dev */
 	#include <asm/uaccess.h>	/* Needed for put_user */
 
-	#define DRIVER_AUTHOR "Nils Ryter <nils.ryter@he-arc.ch>"
+	#define DRIVER_AUTHOR "Nils Ryter <nils.ryter@he-arc.ch> and Lukas Bitter <lukas.bitter@he-arc.ch>"
 	#define DRIVER_DESC   "Send ascii code to arduino"
 	#define SUCCESS 0
 	#define DEVICE_NAME "arduinodev"	/* Dev name as it appears in /proc/devices   */

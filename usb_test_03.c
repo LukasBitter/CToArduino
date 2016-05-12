@@ -115,18 +115,9 @@
 		unsigned char data;
 		int more = 1;
 
-		while(more == 1){
-			printf( "Pot value : %d", serialport_readbyte());
-			printf( "Enter a value : ");
-			data = getchar();
-			if (data == 57)
-			{
-				more = 0;
-			}
-			else
-			{
-				serialport_writebyte(data);
-			}
+		while(true)
+		{
+			serialport_writebyte(serialport_readbyte());
 		}
 
 		close(fd);
