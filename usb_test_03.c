@@ -78,11 +78,22 @@
 
 	void serialport_writebyte(const unsigned char data)
 	{
-		int n = write(fd,&data,8);
+		int n = write(fd,&data,1);
 		if(n < 0)
 		{
-			fputs("write() of 8 bytes failed!\n", stderr);
+			fputs("write() of 1 bytes failed!\n", stderr);
 		}
+	}
+
+	unsigned char serialport_readbyte()
+	{
+		unsigned char data = 0;
+		int n = read(fd,&data,1);
+		if(n < 0)
+		{
+			fputs("read() of 1 bytes failed!\n", stderr);
+		}
+		return data;
 	}
 
 	int serialport_flush(int fd)
@@ -105,6 +116,7 @@
 		int more = 1;
 
 		while(more == 1){
+			printf( "Pot value : %d", serialport_readbyte());
 			printf( "Enter a value : ");
 			data = getchar();
 			if (data == 57)
