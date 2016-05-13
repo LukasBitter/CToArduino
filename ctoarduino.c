@@ -24,6 +24,12 @@
 	 * 3.	So vendors can do likewise based on their own policies
 	 */
 
+	 /*
+	 	DONT WORK, CAUSE SOME LIBS ARE NOT IN KERNEL SPACE
+		we have to write the USB communication but not done yet.
+		@see http://matthias.vallentin.net/blog/2007/04/writing-a-linux-kernel-driver-for-an-unknown-usb-device/
+	 */
+
 		#include <linux/moduleparam.h>
 		#include <linux/stat.h>
 		#include <linux/module.h>	/* Needed by all modules */
@@ -31,12 +37,8 @@
 		#include <linux/init.h>		/* Needed for the macros */
 		#include <linux/fs.h>     /* Needed for read write to dev */
 		#include <asm/uaccess.h>	/* Needed for put_user */
-		#include <stdio.h>   /* Standard input/output definitions */
-		#include <string.h>  /* String function definitions */
-		#include <unistd.h>  /* UNIX standard function definitions */
-		#include <fcntl.h>   /* File control definitions */
-		#include <errno.h>   /* Error number definitions */
-		#include <termios.h> /* POSIX terminal control definitions */
+		#include <asm/segment.h> /* Needed for read write to dev */
+		#include <linux/buffer_head.h> /* Needed for read write to dev */
 
 		#define DRIVER_AUTHOR "Nils Ryter <nils.ryter@he-arc.ch> and Lukas Bitter <lukas.bitter@he-arc.ch>"
 		#define DRIVER_DESC   "Send ascii code to arduino"
@@ -47,12 +49,6 @@
 		MODULE_LICENSE("GPL");
 		MODULE_AUTHOR(DRIVER_AUTHOR);	/* Who wrote this module? */
 		MODULE_DESCRIPTION(DRIVER_DESC);	/* What does this module do */
-
-		//===============================================================
-		//   CONSTANT
-		//===============================================================
-
-		static const speed_t baudrate = B9600;
 
 	  //===============================================================
 	  //   IMPORT ARGS FROM CONSOLE
@@ -67,7 +63,10 @@
 		//   GLOBAL VARIABLES
 		//===============================================================
 
-		static int fd; /* File descriptor for the port */
+		static struct file* fd; /* File descriptor for the port */
+		/* The msg the device will give when asked */
+		static char msg[BUF_LEN];
+		static char *msg_Ptr;
 
 		//===============================================================
 		//   PROTOTYPE OF METHODS
@@ -80,89 +79,109 @@
 		static int device_release(struct inode *, struct file *);
 		static ssize_t device_read(struct file *, char *, size_t, loff_t *);
 		static ssize_t device_write(struct file *, const char *, size_t, loff_t *);
+		void serialport_writebyte(unsigned char data);
+		void serialport_readbyte(void);
+		struct file* file_open(const char* path, int flags, int rights);
+		void file_close(struct file* file);
+		int file_read(struct file* file, unsigned long long offset, unsigned char* data, unsigned int size);
+		int file_write(struct file* file, unsigned long long offset, unsigned char* data, unsigned int size);
+		int file_sync(struct file* file);
 
 		//===============================================================
 		//   COMMUNICATION SERIAL
 		//===============================================================
 
-		void serialport_init()
+		void serialport_writebyte(unsigned char data)
 		{
-			/*
-			* Try to open the port...
-			*/
-			fd = open(arduinoSerialPort, O_RDWR | O_NOCTTY | O_NDELAY);
+			file_write(fd, 0, &data, 1);
 
-			if (fd == -1)
-			{
-				printk(KERN_ALERT "couldn't open port.\n");
-			}
-			else
-			{
-				fcntl(fd, F_SETFL, 0);
-			}
-
-			/*
-			* Get the current options for the port...
-			*/
-
-			struct termios options;
-
-			if(tcgetattr(fd, &options) < 0)
-			{
-				printk(KERN_ALERT "couldn't read attributes.\n");
-			}
-
-			/*
-			* Set the baud rates to 9600...
-			*/
-
-			cfsetispeed(&options, baudrate);
-			cfsetospeed(&options, baudrate);
-			options.c_cflag &= ~CSIZE;
-			options.c_cflag |= CS8;
-			options.c_oflag &= ~OPOST; //raw output
-
-			/*
-			* Enable the receiver and set local mode...
-			*/
-
-			options.c_cflag |= (CLOCAL | CREAD);
-
-			/*
-			* Set the new options for the port...
-			*/
-
-			tcsetattr(fd, TCSANOW, &options);
-			if(tcsetattr(fd, TCSAFLUSH, &options) < 0)
-			{
-				printk(KERN_ALERT "couldn't write new attributes.\n");
-			}
+			printk(KERN_INFO "write() of 1 bytes %d!\n", data);
 		}
 
-		void serialport_writebyte(const unsigned char data)
+		void serialport_readbyte()
 		{
-			int n = write(fd,&data,1);
-			if(n < 0)
-			{
-				printk(KERN_ALERT "write() of 1 bytes failed!\n");
-			}
+			unsigned char data;
+			file_read(fd, 0, &data, 1);
+
+			printk(KERN_INFO "read() of 1 bytes %d!\n", data);
 		}
 
-		unsigned char serialport_readbyte()
+		//===============================================================
+		//   KERNEL FILE MANAGEMENT
+		//
+		//	 source : http://stackoverflow.com/questions/1184274/how-to-read-write-files-within-a-linux-kernel-module
+		//===============================================================
+
+		/*
+		*	Opening a file (similar to open)
+		*/
+		struct file* file_open(const char* path, int flags, int rights)
 		{
-			unsigned char data = 0;
-			int n = read(fd,&data,1);
-			if(n < 0)
-			{
-				printk(KERN_ALERT "read() of 1 bytes failed!\n");
-			}
-			return data;
+		    struct file* filp = NULL;
+		    mm_segment_t oldfs;
+		    int err = 0;
+
+		    oldfs = get_fs();
+		    set_fs(get_ds());
+		    filp = filp_open(path, flags, rights);
+		    set_fs(oldfs);
+		    if(IS_ERR(filp))
+				{
+		        err = PTR_ERR(filp);
+		        return NULL;
+		    }
+		    return filp;
 		}
 
-		int serialport_flush(int fd)
+		/*
+		*	Close a file (similar to close)
+		*/
+		void file_close(struct file* file)
 		{
-			sleep(2); //required to make flush work, for some reason
-			return tcflush(fd, TCIOFLUSH);
+		    filp_close(file, NULL);
+		}
+
+		/*
+		*	Reading data from a file (similar to pread)
+		*/
+		int file_read(struct file* file, unsigned long long offset, unsigned char* data, unsigned int size)
+		{
+	    mm_segment_t oldfs;
+	    int ret;
+
+	    oldfs = get_fs();
+	    set_fs(get_ds());
+
+	    ret = vfs_read(file, data, size, &offset);
+
+	    set_fs(oldfs);
+	    return ret;
+		}
+
+		/*
+		* Writing data to a file (similar to pwrite)
+		*/
+		int file_write(struct file* file, unsigned long long offset, unsigned char* data, unsigned int size)
+		{
+			mm_segment_t oldfs;
+			int ret;
+
+			oldfs = get_fs();
+			set_fs(get_ds());
+
+			ret = vfs_write(file, data, size, &offset);
+
+			set_fs(oldfs);
+			return ret;
+		}
+
+		/*
+		* Syncing changes a file (similar to fsync)
+		*/
+		int file_sync(struct file* file)
+		{
+	    vfs_fsync(file, 0);
+	    return 0;
 		}
 
 	  //===============================================================
@@ -235,7 +254,7 @@
 			 * put_user which copies data from the kernel data segment to
 			 * the user data segment.
 			 */
-			put_user(serialport_readbyte(), buffer++);
+  		put_user(*(msg_Ptr++), buffer++);
 
 	  	/* Most read functions return the number of bytes put into the buffer */
 			return 1;
@@ -246,7 +265,8 @@
 	   */
 	  static ssize_t device_write(struct file *filp, const char *buff, size_t len, loff_t * off)
 	  {
-			for(int i = off; i < len; ++i)
+			int i = *off;
+			for(; i < len; ++i)
 			{
 				printk(KERN_INFO "Yey, you send %d to arduino.\n", buff[i]);
 				serialport_writebyte(buff[i]);
@@ -265,7 +285,8 @@
 		{
 	    Major = register_chrdev(0, DEVICE_NAME, &fops);
 
-			if (Major < 0) {
+			if (Major < 0)
+			{
 			  printk(KERN_ALERT "Registering char device failed with %d\n", Major);
 			  return Major;
 			}
@@ -275,8 +296,12 @@
 	  	printk(KERN_INFO "Remove the device file and module when done.\n");
 
 			//Init serial port
-			serialport_init();
-			serialport_flush(fd);
+			fd = file_open("/root/toto", O_APPEND, 0);
+
+			if (fd == NULL)
+			{
+				printk(KERN_ALERT "couldn't open port.\n");
+			}
 
 			return SUCCESS;
 		}
@@ -287,7 +312,7 @@
 		void __exit cleanup_module(void)
 		{
 			//Close serial port
-			close(fd);
+			file_close(fd);
 		 	//Unregister the device
 			unregister_chrdev(Major, DEVICE_NAME);
 		}

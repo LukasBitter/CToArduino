@@ -10,7 +10,6 @@
   //===============================================================
 
 	static const speed_t baudrate = B9600;
-	static const char *serialPort = "/dev/ttyACM1";
 
   //===============================================================
   //   GLOBAL VARIABLES
@@ -22,7 +21,7 @@
   //   METHODS
   //===============================================================
 
-	void serialport_init()
+	int serialport_init(const char *serialPort)
 	{
 		/*
 		* Try to open the port...
@@ -32,6 +31,7 @@
 		if (fd == -1)
 		{
 			perror("couldn't open port");
+			return -1;
 		}
 		else
 		{
@@ -47,6 +47,7 @@
 		if(tcgetattr(fd, &options) < 0)
 		{
 			perror("couldn't read attributes");
+			return -2;
 		}
 
 		/*
@@ -73,6 +74,7 @@
 		if(tcsetattr(fd, TCSAFLUSH, &options) < 0)
 		{
 			perror("couldn't write new attributes");
+			return -3;
 		}
 	}
 
@@ -106,19 +108,49 @@
   //   MAIN
   //===============================================================
 
-	void main()
+	int main(int argc, char *argv[])
 	{
-		serialport_init();
-
+		char *serialPort;
+		if(argc == 2)
+		{
+			serialPort = argv[1];
+		}
+		else
+		{
+			//try the default one
+			serialPort = "/dev/ttyACM0";
+			if(serialport_init(serialPort) != 0)
+			{
+				serialPort = "/dev/ttyACM1";
+				if(serialport_init(serialPort) != 0)
+				{
+					return -1;
+				}
+			}
+		}
 		serialport_flush(fd);
 
 		unsigned char data;
 		int more = 1;
 
-		while(true)
+		while(more == 1)
 		{
-			serialport_writebyte(serialport_readbyte());
+			perror("ok");
+			printf( "Pot value : %d\n", serialport_readbyte());
+			printf( "Enter a value : \n");
+			fflush(NULL);
+			data = getchar();
+			if (data == 57) //enter 9 in ascii
+			{
+				more = 0;
+			}
+			else
+			{
+				serialport_writebyte(data);
+			}
 		}
 
 		close(fd);
+
+		return 0;
 	}

@@ -1,4 +1,4 @@
-/*
+ /*
  * The following license idents are currently accepted as indicating free
  * software modules
  *
@@ -24,8 +24,8 @@
  * 3.	So vendors can do likewise based on their own policies
  */
 
-	#include <linux/moduleparam.h>
 	#include <linux/stat.h>
+	#include <linux/moduleparam.h>
 	#include <linux/module.h>	/* Needed by all modules */
 	#include <linux/kernel.h>	/* Needed for KERN_INFO */
 	#include <linux/init.h>		/* Needed for the macros */
@@ -77,6 +77,8 @@
 	/* The msg the device will give when asked */
 	static char msg[BUF_LEN];
 	static char *msg_Ptr;
+	static char msgW[BUF_LEN];
+	static char *msg_PtrW;
 
 	//descriptor of valid operations on module
 	static struct file_operations fops = {
@@ -105,7 +107,7 @@
   		return -EBUSY;
 
   	Device_Open++;
-  	sprintf(msg, "call nb : %d | param1 : %s | param2 %d\n", counter++, arduinoSerialPort, baudrate);
+  	sprintf(msg, "call nb : %d | param1 : %s | param2 %d | write : %s\n", counter++, arduinoSerialPort, baudrate, msgW);
   	msg_Ptr = msg;
   	try_module_get(THIS_MODULE);
 
@@ -177,8 +179,17 @@
    */
   static ssize_t device_write(struct file *filp, const char *buff, size_t len, loff_t * off)
   {
-  	printk(KERN_ALERT "Sorry, this operation isn't supported.\n");
-  	return -EINVAL;
+		int i;
+
+		for (i = 0; i < len && i < BUF_LEN; i++)
+			get_user(msgW[i], buff + i);
+
+		msg_PtrW = msgW;
+
+		/*
+		 * Again, return the number of input characters used
+		 */
+		return i;
   }
 
 	//===============================================================
