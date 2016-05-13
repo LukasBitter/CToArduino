@@ -8,6 +8,8 @@
 *.gch
 *.pch
 
+usb_test_03
+
 # Libraries
 *.lib
 *.a

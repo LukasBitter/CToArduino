@@ -135,10 +135,7 @@
 
 		while(more == 1)
 		{
-			perror("ok");
-			printf( "Pot value : %d\n", serialport_readbyte());
 			printf( "Enter a value : \n");
-			fflush(NULL);
 			data = getchar();
 			if (data == 57) //enter 9 in ascii
 			{
@@ -147,6 +144,12 @@
 			else
 			{
 				serialport_writebyte(data);
+
+				if(data == 50)
+				{
+						usleep(10000); //wait the arduino write in pipe
+						printf( "Pot value : %d\n", serialport_readbyte());
+				}
 			}
 		}
 
