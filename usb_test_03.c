@@ -10,7 +10,7 @@
   //===============================================================
 
 	static const speed_t baudrate = B9600;
-	static const char *serialPort = "/dev/ttyACM1";
+	static const char *serialPort = "/dev/ttyACM0";
 
   //===============================================================
   //   GLOBAL VARIABLES
