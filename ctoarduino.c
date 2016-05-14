@@ -24,12 +24,6 @@
 	 * 3.	So vendors can do likewise based on their own policies
 	 */
 
-	 /*
-	 	DONT WORK, CAUSE SOME LIBS ARE NOT IN KERNEL SPACE
-		we have to write the USB communication but not done yet.
-		@see http://matthias.vallentin.net/blog/2007/04/writing-a-linux-kernel-driver-for-an-unknown-usb-device/
-	 */
-
 		#include <linux/moduleparam.h>
 		#include <linux/stat.h>
 		#include <linux/module.h>	/* Needed by all modules */

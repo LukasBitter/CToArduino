@@ -4,6 +4,10 @@
 	#include <fcntl.h>   /* File control definitions */
 	#include <errno.h>   /* Error number definitions */
 	#include <termios.h> /* POSIX terminal control definitions */
+	#include <sys/types.h>
+	#include <sys/stat.h>
+	#include <fcntl.h>
+	#include <sys/select.h>
 
   //===============================================================
   //   CONSTANT
@@ -85,6 +89,32 @@
 		{
 			fputs("write() of 1 bytes failed!\n", stderr);
 		}
+	}
+
+	unsigned char serialport_readbyte_withtimout()
+	{
+		fd_set set;
+		struct timeval timeout;
+		int rv;
+		char buff[100];
+		int len = 100;
+
+		FD_ZERO(&set); /* clear the set */
+		FD_SET(fd, &set); /* add our file descriptor to the set */
+
+		timeout.tv_sec = 0;
+		timeout.tv_usec = 10000;
+
+		rv = select(fd + 1, &set, NULL, NULL, &timeout);
+		if(rv == -1)
+			perror("select"); /* an error accured */
+		else if(rv == 0)
+			printf("timeout"); /* a timeout occured */
+		else
+		{
+			return serialport_readbyte();
+		}
+		return 0;
 	}
 
 	unsigned char serialport_readbyte()

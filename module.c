@@ -24,6 +24,8 @@
  * 3.	So vendors can do likewise based on their own policies
  */
 
+	//source : all this tuto : http://www.tldp.org/LDP/lkmpg/2.6/html/hello2.html
+
 	#include <linux/stat.h>
 	#include <linux/moduleparam.h>
 	#include <linux/module.h>	/* Needed by all modules */

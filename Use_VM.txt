@@ -1,0 +1,57 @@
+1)  Importer la VM (Virtualbox)
+
+    La machine est une debian Jessie de base.
+    Les dépendances ajoutés sont:
+    - build-essential
+    - sudo
+    - openssh-server
+    - linux-headers
+
+2)  Se connecter :
+    - en root user=root pw=root
+    - ou en utilisateur normal user=user pw=user (sudo présent)
+
+    Les suite suppose que vous êtes connecté en root
+
+3)  Aller dans le répertoire de travail suivant :
+
+      /home/user/
+
+    Les sous dossiers suivants sont les parties de notre travail:
+    - ctoarduino : contient la fusion de la partie C et du module
+    - module : contient le code de demo du module
+    - serial : contient le code de demo de la partie C
+
+4)  Démonstration du module :
+
+    cd /home/user/module
+
+    #clean the context
+    rmmod test.ko
+    rm /dev/arduinodev
+
+    #prepare new context
+    insmod test.ko arduinoSerialPort="/dev/ttyACM0" baudrate=1024
+    mknod /dev/arduinodev c 250 0
+
+    #test the context
+    #read the virtual file : show nb call, input params and last write command
+    cat /dev/arduinodev
+    #write a command
+    echo "led1:on"> /dev/arduinodev
+    cat /dev/arduinodev
+
+5)  Démonstration du code C
+
+    a) brancher l'arduino
+    b) charger le code "sketch_cToArduino.ino"
+    c) lier l'arduino à la VM
+    d) executer le programme :
+
+        cd /home/user/serial
+        ./test
+
+6)  Démonstration de la fusion :
+
+    Le module ne fonctionne pas.
+    Le processus se fait arrêter.
